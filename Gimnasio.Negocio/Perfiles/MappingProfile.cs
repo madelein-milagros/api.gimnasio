@@ -27,5 +27,8 @@ public class MappingProfile : Profile
         CreateMap<SocioCrearDto, Socio>();
 
         CreateMap<SocioActualizarDto, Socio>();
+
+        // Mapeo de Usuario (Autenticación JWT - Semana 14)
+        CreateMap<RegistroDto, Usuario>();
     }
 }

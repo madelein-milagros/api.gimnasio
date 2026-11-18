@@ -16,6 +16,8 @@ public partial class GimnasioContext : DbContext
 
     public virtual DbSet<Socio> Socios { get; set; }
 
+    public virtual DbSet<Usuario> Usuarios { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Membresia>(entity =>
@@ -46,6 +48,19 @@ public partial class GimnasioContext : DbContext
                 .HasForeignKey(d => d.MembresiaId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Socio_Membresia");
+        });
+
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("Usuario");
+
+            entity.HasIndex(e => e.Correo, "UQ_Usuario_Correo").IsUnique();
+
+            entity.Property(e => e.Correo).HasMaxLength(100);
+            entity.Property(e => e.ClaveHash).HasMaxLength(255);
+            entity.Property(e => e.Rol).HasMaxLength(40);
         });
 
         OnModelCreatingPartial(modelBuilder);

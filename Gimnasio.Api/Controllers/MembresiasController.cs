@@ -1,12 +1,14 @@
 using Gimnasio.Entidades.DTOs;
 using Gimnasio.Negocio.Excepciones;
 using Gimnasio.Negocio.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gimnasio.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class MembresiasController : ControllerBase
 {
     private readonly IMembresiaServicio _membresiaServicio;
@@ -20,7 +22,8 @@ public class MembresiasController : ControllerBase
         _socioServicio = socioServicio;
     }
 
-    // 1. GET: api/membresias
+    // 1. GET: api/membresias (Público)
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MembresiaDto>>> ObtenerTodas()
     {
@@ -28,7 +31,8 @@ public class MembresiasController : ControllerBase
         return Ok(membresias);
     }
 
-    // 2. GET: api/membresias/{id}
+    // 2. GET: api/membresias/{id} (Público)
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<MembresiaDto>> ObtenerPorId(int id)
     {
@@ -41,7 +45,7 @@ public class MembresiasController : ControllerBase
         return Ok(membresia);
     }
 
-    // 3. GET (Ruta anidada): api/membresias/{id}/socios
+    // 3. GET (Ruta anidada): api/membresias/{id}/socios (Cualquier usuario autenticado: Recepcionista o Gerente)
     [HttpGet("{id:int}/socios")]
     public async Task<ActionResult<IEnumerable<SocioDto>>> ObtenerSociosPorMembresia(int id)
     {
@@ -54,7 +58,8 @@ public class MembresiasController : ControllerBase
         return Ok(socios);
     }
 
-    // 4. POST: api/membresias
+    // 4. POST: api/membresias (Solo rol Gerente)
+    [Authorize(Roles = "Gerente")]
     [HttpPost]
     public async Task<ActionResult<MembresiaDto>> Crear([FromBody] MembresiaCrearDto dto)
     {
@@ -69,7 +74,8 @@ public class MembresiasController : ControllerBase
         }
     }
 
-    // 5. PUT: api/membresias/{id}
+    // 5. PUT: api/membresias/{id} (Solo rol Gerente)
+    [Authorize(Roles = "Gerente")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(int id, [FromBody] MembresiaActualizarDto dto)
     {
@@ -89,7 +95,8 @@ public class MembresiasController : ControllerBase
         }
     }
 
-    // 6. DELETE: api/membresias/{id}
+    // 6. DELETE: api/membresias/{id} (Solo rol Gerente)
+    [Authorize(Roles = "Gerente")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

@@ -1,12 +1,14 @@
 using Gimnasio.Entidades.DTOs;
 using Gimnasio.Negocio.Excepciones;
 using Gimnasio.Negocio.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gimnasio.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SociosController : ControllerBase
 {
     private readonly ISocioServicio _socioServicio;
@@ -16,7 +18,7 @@ public class SociosController : ControllerBase
         _socioServicio = socioServicio;
     }
 
-    // 7. GET: api/socios
+    // 7. GET: api/socios (Autenticado: Recepcionista o Gerente)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SocioDto>>> ObtenerTodos()
     {
@@ -24,7 +26,7 @@ public class SociosController : ControllerBase
         return Ok(socios);
     }
 
-    // 8. GET con filtros por query string: api/socios/filtrar?nombre=...&membresiaId=...&activo=...
+    // 8. GET con filtros por query string: api/socios/filtrar (Autenticado: Recepcionista o Gerente)
     [HttpGet("filtrar")]
     public async Task<ActionResult<IEnumerable<SocioDto>>> Filtrar(
         [FromQuery] string? nombre,
@@ -35,7 +37,7 @@ public class SociosController : ControllerBase
         return Ok(socios);
     }
 
-    // 9. GET: api/socios/{id}
+    // 9. GET: api/socios/{id} (Autenticado: Recepcionista o Gerente)
     [HttpGet("{id:int}")]
     public async Task<ActionResult<SocioDto>> ObtenerPorId(int id)
     {
@@ -48,7 +50,7 @@ public class SociosController : ControllerBase
         return Ok(socio);
     }
 
-    // 10. POST: api/socios
+    // 10. POST: api/socios (Autenticado: Recepcionista o Gerente)
     [HttpPost]
     public async Task<ActionResult<SocioDto>> Crear([FromBody] SocioCrearDto dto)
     {
@@ -63,7 +65,7 @@ public class SociosController : ControllerBase
         }
     }
 
-    // 11. PUT: api/socios/{id}
+    // 11. PUT: api/socios/{id} (Autenticado: Recepcionista o Gerente)
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(int id, [FromBody] SocioActualizarDto dto)
     {
@@ -83,7 +85,8 @@ public class SociosController : ControllerBase
         }
     }
 
-    // 12. DELETE: api/socios/{id}
+    // 12. DELETE: api/socios/{id} (Solo rol Gerente)
+    [Authorize(Roles = "Gerente")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

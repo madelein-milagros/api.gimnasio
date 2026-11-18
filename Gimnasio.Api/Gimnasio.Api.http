@@ -1,30 +1,102 @@
 @baseUrl = http://localhost:5046
+@tokenRecepcionista = PEGA_AQUI_EL_TOKEN_DEL_LOGIN_RECEPCIONISTA
+@tokenGerente = PEGA_AQUI_EL_TOKEN_DEL_LOGIN_GERENTE
 
 ### =========================================================================
-### PRUEBAS DE MEMBRESIAS (Endpoints 1 al 6 + Códigos 200, 201, 204, 400, 404, 409)
+### 1. AUTENTICACIÓN JWT (/api/auth) — Códigos 200, 201, 400, 401, 409
 ### =========================================================================
 
-### 1. [200 OK] GET: Listar todas las membresías (incluye TotalSocios calculado con AutoMapper)
+### 1.1 [201 Created] POST: Registrar nuevo usuario (se crea con rol Recepcionista)
+POST {{baseUrl}}/api/auth/registro
+Content-Type: application/json
+
+{
+  "correo": "nuevo.recepcionista@gimnasio.com",
+  "clave": "Gym123456!"
+}
+
+### 1.2 [409 Conflict] POST: Registrar usuario con correo repetido (Regla: correo único)
+POST {{baseUrl}}/api/auth/registro
+Content-Type: application/json
+
+{
+  "correo": "recepcion@gimnasio.com",
+  "clave": "Gym123456!"
+}
+
+### 1.3 [400 Bad Request] POST: Registrar usuario con correo inválido y clave corta
+POST {{baseUrl}}/api/auth/registro
+Content-Type: application/json
+
+{
+  "correo": "correo-invalido",
+  "clave": "123"
+}
+
+### 1.4 [401 Unauthorized] POST: Login con credenciales incorrectas
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "correo": "recepcion@gimnasio.com",
+  "clave": "ClaveIncorrecta123"
+}
+
+### 1.5 [200 OK] POST: Login como Recepcionista (Copia el "token" devuelto en @tokenRecepcionista)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "correo": "recepcion@gimnasio.com",
+  "clave": "Gym123456!"
+}
+
+### 1.6 [200 OK] POST: Login como Gerente (Copia el "token" devuelto en @tokenGerente)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "correo": "gerente@gimnasio.com",
+  "clave": "Gym123456!"
+}
+
+### 1.7 [401 Unauthorized] GET: Consultar perfil SIN token
+GET {{baseUrl}}/api/auth/perfil
+Accept: application/json
+
+### 1.8 [200 OK] GET: Consultar perfil CON token de Recepcionista (lee User.Claims)
+GET {{baseUrl}}/api/auth/perfil
+Authorization: Bearer {{tokenRecepcionista}}
+Accept: application/json
+
+### 1.9 [200 OK] GET: Consultar perfil CON token de Gerente (lee User.Claims)
+GET {{baseUrl}}/api/auth/perfil
+Authorization: Bearer {{tokenGerente}}
+Accept: application/json
+
+
+### =========================================================================
+### 2. MEMBRESIAS (/api/membresias) — Públicos, Autenticados y Solo Gerente
+### =========================================================================
+
+### 2.1 [200 OK] GET (Público - Sin token): Listar todas las membresías
 GET {{baseUrl}}/api/membresias
 Accept: application/json
 
-### 2. [200 OK] GET: Obtener membresía por ID existente
+### 2.2 [200 OK] GET (Público - Sin token): Obtener membresía por ID
 GET {{baseUrl}}/api/membresias/1
 Accept: application/json
 
-### 3. [404 Not Found] GET: Obtener membresía por ID inexistente
-GET {{baseUrl}}/api/membresias/999
-Accept: application/json
-
-### 4. [200 OK] GET (Ruta anidada): Obtener socios de una membresía específica
+### 2.3 [401 Unauthorized] GET (Ruta anidada SIN token): Socios de una membresía
 GET {{baseUrl}}/api/membresias/3/socios
 Accept: application/json
 
-### 5. [404 Not Found] GET (Ruta anidada): Obtener socios de una membresía inexistente
-GET {{baseUrl}}/api/membresias/999/socios
+### 2.4 [200 OK] GET (Ruta anidada CON token Recepcionista): Socios de una membresía
+GET {{baseUrl}}/api/membresias/3/socios
+Authorization: Bearer {{tokenRecepcionista}}
 Accept: application/json
 
-### 6. [201 Created] POST: Crear nueva membresía válida
+### 2.5 [401 Unauthorized] POST: Crear membresía SIN token
 POST {{baseUrl}}/api/membresias
 Content-Type: application/json
 
@@ -35,19 +107,33 @@ Content-Type: application/json
   "duracionMeses": 6
 }
 
-### 7. [400 Bad Request] POST: Crear membresía con datos inválidos (Data Annotations)
+### 2.6 [403 Forbidden] POST: Crear membresía con rol Recepcionista (Exige rol Gerente)
 POST {{baseUrl}}/api/membresias
+Authorization: Bearer {{tokenRecepcionista}}
 Content-Type: application/json
 
 {
-  "nombre": "AB",
-  "descripcion": "Corto",
-  "precioMensual": 2.00,
-  "duracionMeses": 36
+  "nombre": "Plan Semestral CrossFit",
+  "descripcion": "Acceso a área de CrossFit, funcional y pesas libres por 6 meses",
+  "precioMensual": 109.90,
+  "duracionMeses": 6
 }
 
-### 8. [409 Conflict] POST: Crear membresía con nombre duplicado (Regla de Negocio 1)
+### 2.7 [201 Created] POST: Crear membresía con rol Gerente
 POST {{baseUrl}}/api/membresias
+Authorization: Bearer {{tokenGerente}}
+Content-Type: application/json
+
+{
+  "nombre": "Plan Semestral CrossFit",
+  "descripcion": "Acceso a área de CrossFit, funcional y pesas libres por 6 meses",
+  "precioMensual": 109.90,
+  "duracionMeses": 6
+}
+
+### 2.8 [409 Conflict] POST: Crear membresía duplicada con rol Gerente (Regla de Negocio)
+POST {{baseUrl}}/api/membresias
+Authorization: Bearer {{tokenGerente}}
 Content-Type: application/json
 
 {
@@ -57,8 +143,9 @@ Content-Type: application/json
   "duracionMeses": 1
 }
 
-### 9. [204 No Content] PUT: Actualizar membresía existente (ID 5)
+### 2.9 [204 No Content] PUT: Actualizar membresía con rol Gerente
 PUT {{baseUrl}}/api/membresias/5
+Authorization: Bearer {{tokenGerente}}
 Content-Type: application/json
 
 {
@@ -68,48 +155,33 @@ Content-Type: application/json
   "duracionMeses": 6
 }
 
-### 10. [404 Not Found] PUT: Actualizar membresía inexistente
-PUT {{baseUrl}}/api/membresias/999
-Content-Type: application/json
-
-{
-  "nombre": "Plan Inexistente",
-  "descripcion": "Descripción válida para prueba de recurso no encontrado",
-  "precioMensual": 99.90,
-  "duracionMeses": 3
-}
-
-### 11. [409 Conflict] DELETE: Intentar eliminar membresía con socios asociados (Regla de Negocio 2)
+### 2.10 [409 Conflict] DELETE: Eliminar membresía con socios asociados (Rol Gerente)
 DELETE {{baseUrl}}/api/membresias/3
-Accept: application/json
-
-### 12. [204 No Content] DELETE: Eliminar membresía sin socios asociados (ID 5)
-DELETE {{baseUrl}}/api/membresias/5
+Authorization: Bearer {{tokenGerente}}
 Accept: application/json
 
 
 ### =========================================================================
-### PRUEBAS DE SOCIOS (Endpoints 7 al 12 + Códigos 200, 201, 204, 400, 404, 409)
+### 3. SOCIOS (/api/socios) — Autenticados (Recepcionista / Gerente) y DELETE Solo Gerente
 ### =========================================================================
 
-### 13. [200 OK] GET: Listar todos los socios (incluye Membresia y PrecioMensual con AutoMapper)
+### 3.1 [401 Unauthorized] GET: Listar socios SIN token
 GET {{baseUrl}}/api/socios
 Accept: application/json
 
-### 14. [200 OK] GET con filtros por Query String: Buscar socios activos de la membresía 3 con nombre "Valeria"
+### 3.2 [200 OK] GET: Listar socios con rol Recepcionista
+GET {{baseUrl}}/api/socios
+Authorization: Bearer {{tokenRecepcionista}}
+Accept: application/json
+
+### 3.3 [200 OK] GET con filtros por Query String (Rol Recepcionista)
 GET {{baseUrl}}/api/socios/filtrar?nombre=Valeria&membresiaId=3&activo=true
+Authorization: Bearer {{tokenRecepcionista}}
 Accept: application/json
 
-### 15. [200 OK] GET: Obtener socio por ID existente
-GET {{baseUrl}}/api/socios/1
-Accept: application/json
-
-### 16. [404 Not Found] GET: Obtener socio por ID inexistente
-GET {{baseUrl}}/api/socios/999
-Accept: application/json
-
-### 17. [201 Created] POST: Registrar nuevo socio válido
+### 3.4 [201 Created] POST: Registrar nuevo socio con rol Recepcionista
 POST {{baseUrl}}/api/socios
+Authorization: Bearer {{tokenRecepcionista}}
 Content-Type: application/json
 
 {
@@ -121,90 +193,12 @@ Content-Type: application/json
   "membresiaId": 2
 }
 
-### 18. [400 Bad Request] POST: Registrar socio con datos inválidos (DNI de 4 dígitos, correo inválido)
-POST {{baseUrl}}/api/socios
-Content-Type: application/json
-
-{
-  "nombreCompleto": "Jo",
-  "dni": "1234",
-  "telefono": "123",
-  "email": "correo-invalido",
-  "edad": 150,
-  "membresiaId": 0
-}
-
-### 19. [409 Conflict] POST: Registrar socio menor de 14 años (Regla de Negocio 3)
-POST {{baseUrl}}/api/socios
-Content-Type: application/json
-
-{
-  "nombreCompleto": "Mateo Sebastián Díaz Pérez",
-  "dni": "81234567",
-  "telefono": "987123456",
-  "email": "mateo.diaz@correo.com",
-  "edad": 12,
-  "membresiaId": 1
-}
-
-### 20. [409 Conflict] POST: Registrar socio con DNI duplicado (Regla de Negocio 4)
-POST {{baseUrl}}/api/socios
-Content-Type: application/json
-
-{
-  "nombreCompleto": "Otro Socio Con Dni Repetido",
-  "dni": "71234561",
-  "telefono": "987654321",
-  "email": "repetido@correo.com",
-  "edad": 28,
-  "membresiaId": 1
-}
-
-### 21. [409 Conflict] POST: Registrar socio con MembresiaId inexistente (Regla de Negocio 5)
-POST {{baseUrl}}/api/socios
-Content-Type: application/json
-
-{
-  "nombreCompleto": "Renzo Fabián Silva Morales",
-  "dni": "79887766",
-  "telefono": "965432187",
-  "email": "renzo.silva@correo.com",
-  "edad": 25,
-  "membresiaId": 999
-}
-
-### 22. [204 No Content] PUT: Actualizar socio existente (ID 6)
-PUT {{baseUrl}}/api/socios/6
-Content-Type: application/json
-
-{
-  "nombreCompleto": "Andrea Milagros Gómez Huamán",
-  "dni": "75849302",
-  "telefono": "991122334",
-  "email": "andrea.gomez.actualizado@correo.com",
-  "edad": 24,
-  "activo": true,
-  "membresiaId": 3
-}
-
-### 23. [404 Not Found] PUT: Actualizar socio inexistente
-PUT {{baseUrl}}/api/socios/999
-Content-Type: application/json
-
-{
-  "nombreCompleto": "Socio No Existe",
-  "dni": "70001111",
-  "telefono": "999888777",
-  "email": "noexiste@correo.com",
-  "edad": 30,
-  "activo": true,
-  "membresiaId": 1
-}
-
-### 24. [204 No Content] DELETE: Eliminar socio existente (ID 6)
+### 3.5 [403 Forbidden] DELETE: Intentar eliminar socio con rol Recepcionista (Exige rol Gerente)
 DELETE {{baseUrl}}/api/socios/6
+Authorization: Bearer {{tokenRecepcionista}}
 Accept: application/json
 
-### 25. [404 Not Found] DELETE: Eliminar socio inexistente
-DELETE {{baseUrl}}/api/socios/999
+### 3.6 [204 No Content] DELETE: Eliminar socio con rol Gerente
+DELETE {{baseUrl}}/api/socios/6
+Authorization: Bearer {{tokenGerente}}
 Accept: application/json

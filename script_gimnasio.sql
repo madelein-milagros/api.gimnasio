@@ -1,7 +1,7 @@
 -- =========================================================================
--- Script SQL - Base de Datos GimnasioDb (Database First)
--- Curso: Desarrollo de Aplicaciones Empresariales Avanzadas - Semana 13
--- Tema: Gestión de Gimnasio (Membresías y Socios - Relación 1:N)
+-- Script SQL - Base de Datos GimnasioDb (Semana 13 y Semana 14 - JWT)
+-- Curso: Desarrollo de Aplicaciones Empresariales Avanzadas
+-- Tema: Gestión de Gimnasio (Membresías, Socios y Usuarios con Roles JWT)
 -- =========================================================================
 
 IF DB_ID('GimnasioDb') IS NOT NULL
@@ -17,7 +17,7 @@ GO
 USE GimnasioDb;
 GO
 
--- Tabla 1 (Lado "1"): Membresia
+-- 1. Tabla Membresia (Lado "1")
 CREATE TABLE Membresia (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Nombre NVARCHAR(80) NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE Membresia (
 );
 GO
 
--- Tabla 2 (Lado "N"): Socio
+-- 2. Tabla Socio (Lado "N")
 CREATE TABLE Socio (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     NombreCompleto NVARCHAR(120) NOT NULL,
@@ -40,6 +40,16 @@ CREATE TABLE Socio (
     MembresiaId INT NOT NULL,
     CONSTRAINT FK_Socio_Membresia FOREIGN KEY (MembresiaId)
         REFERENCES Membresia(Id)
+);
+GO
+
+-- 3. Tabla Usuario (Semana 14: Autenticación JWT y Roles del Negocio)
+CREATE TABLE Usuario (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Correo NVARCHAR(100) NOT NULL,
+    ClaveHash NVARCHAR(255) NOT NULL,
+    Rol NVARCHAR(40) NOT NULL,
+    CONSTRAINT UQ_Usuario_Correo UNIQUE (Correo)
 );
 GO
 
@@ -58,4 +68,17 @@ INSERT INTO Socio (NombreCompleto, Dni, Telefono, Email, Edad, FechaInscripcion,
 (N'Jorge Luis Vargas Quispe', N'45896321', N'956781234', N'jorge.vargas@correo.com', 34, '2026-03-01T18:00:00', 1, 1),
 (N'Valeria Sofía Castro Salazar', N'73698521', N'945612378', N'valeria.castro@correo.com', 29, '2026-03-20T10:00:00', 1, 3),
 (N'Diego Alejandro Torres Rojas', N'76543219', N'934567890', N'diego.torres@correo.com', 19, '2026-04-05T16:45:00', 0, 2);
+GO
+
+-- Usuarios de prueba (Semana 14) registrados con la clave en común: Gym123456!
+-- Hash BCrypt generado a través del endpoint POST /api/auth/registro
+INSERT INTO Usuario (Correo, ClaveHash, Rol) VALUES
+(N'recepcion@gimnasio.com', N'$2a$11$VbIVDJ/RB/.aVTzxgdyZ9ekuC065N3Up93Q7OaOZMT71lf3Kao/4G', N'Recepcionista'),
+(N'gerente@gimnasio.com',   N'$2a$11$VGGLnK8pVEb5oYiH60Bm2e9rz1RGPjuYMIKlpEq3OoTHQQb8JkaN6', N'Recepcionista');
+GO
+
+-- Cambio de rol con UPDATE para el usuario con rol Gerente (como indica la guía)
+UPDATE Usuario
+SET Rol = N'Gerente'
+WHERE Correo = N'gerente@gimnasio.com';
 GO
